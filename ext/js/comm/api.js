@@ -435,6 +435,14 @@ export class API {
         return this._invoke('forceSync', void 0);
     }
 
+    /**
+     * @param {string} url
+     * @returns {Promise<import('api').ApiReturn<'getAudioDataUrl'>>}
+     */
+    getAudioDataUrl(url) {
+        return this._invoke('getAudioDataUrl', {url});
+    }
+
     // Utilities
 
     /**

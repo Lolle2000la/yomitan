@@ -151,6 +151,7 @@ export class Backend {
             ['termsFind',                    this._onApiTermsFind.bind(this)],
             ['parseText',                    this._onApiParseText.bind(this)],
             ['getAnkiConnectVersion',        this._onApiGetAnkiConnectVersion.bind(this)],
+            ['getAudioDataUrl',              this._onApiGetAudioDataUrl.bind(this)],
             ['isAnkiConnected',              this._onApiIsAnkiConnected.bind(this)],
             ['addAnkiNote',                  this._onApiAddAnkiNote.bind(this)],
             ['updateAnkiNote',               this._onApiUpdateAnkiNote.bind(this)],
@@ -609,6 +610,27 @@ export class Backend {
     /** @type {import('api').ApiHandler<'getAnkiConnectVersion'>} */
     async _onApiGetAnkiConnectVersion() {
         return await this._anki.getVersion();
+    }
+
+    /** @type {import('api').ApiHandler<'getAudioDataUrl'>} */
+    async _onApiGetAudioDataUrl({url}) {
+        const response = await this._requestBuilder.fetchAnonymous(url, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'default',
+            credentials: 'omit',
+            redirect: 'follow',
+            referrerPolicy: 'no-referrer',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Invalid response status: ${response.status}`);
+        }
+
+        const uint8Array = await RequestBuilder.readFetchResponseArrayBuffer(response, null);
+        const contentType = response.headers.get('Content-Type') || 'audio/mpeg';
+        const base64 = arrayBufferToBase64(/** @type {ArrayBuffer} */ (uint8Array.buffer));
+        return {dataUrl: `data:${contentType};base64,${base64}`};
     }
 
     /** @type {import('api').ApiHandler<'isAnkiConnected'>} */

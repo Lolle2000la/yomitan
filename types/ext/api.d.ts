@@ -193,6 +193,14 @@ type ApiSurface = {
         };
         return: Anki.NoteInfoWrapper[];
     };
+    getAudioDataUrl: {
+        params: {
+            url: string;
+        };
+        return: {
+            dataUrl: string;
+        };
+    };
     injectAnkiNoteMedia: {
         params: {
             timestamp: number;
