@@ -74,7 +74,7 @@ export class AudioSystem extends EventDispatcher {
      * @returns {Promise<HTMLAudioElement|WebAudioLocalAudio>}
      */
     async createAudio(url, sourceType) {
-        if (url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) {
+        if (this._isLocalUrl(url)) {
             /** @type {{success: boolean, data?: string, contentType?: string, error?: string}|undefined} */
             const response = await chrome.runtime.sendMessage({
                 type: 'FETCH_LOCAL_AUDIO_DATA',
@@ -149,6 +149,19 @@ export class AudioSystem extends EventDispatcher {
             }
             default:
                 return true;
+        }
+    }
+
+    /**
+     * @param {string} url
+     * @returns {boolean}
+     */
+    _isLocalUrl(url) {
+        try {
+            const {hostname} = new URL(url);
+            return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+        } catch (e) {
+            return false;
         }
     }
 
