@@ -20,6 +20,41 @@ import {log} from '../core/log.js';
 import {WebExtension} from '../extension/web-extension.js';
 import {Backend} from './backend.js';
 
+/**
+ * @param {string} url
+ * @returns {Promise<{data: string, contentType: string}>}
+ */
+async function fetchLocalAudioData(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Local server responded with HTTP status code ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    const arrayBuffer = await response.arrayBuffer();
+
+    let binary = '';
+    const bytes = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+
+    return {
+        data: btoa(binary),
+        contentType: contentType,
+    };
+}
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.type === 'FETCH_LOCAL_AUDIO_DATA') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        fetchLocalAudioData(message.url)
+            .then((result) => sendResponse({success: true, data: result.data, contentType: result.contentType}))
+            .catch((error) => sendResponse({success: false, error: /** @type {Error} */ (error).message}));
+        return true;
+    }
+});
+
 /** Entry point. */
 async function main() {
     const webExtension = new WebExtension();

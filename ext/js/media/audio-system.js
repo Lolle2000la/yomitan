@@ -18,6 +18,7 @@
 
 import {EventDispatcher} from '../core/event-dispatcher.js';
 import {TextToSpeechAudio} from './text-to-speech-audio.js';
+import {WebAudioLocalAudio} from './web-audio-local-audio.js';
 
 /**
  * @augments EventDispatcher<import('audio-system').Events>
@@ -70,9 +71,25 @@ export class AudioSystem extends EventDispatcher {
     /**
      * @param {string} url
      * @param {import('settings').AudioSourceType} sourceType
-     * @returns {Promise<HTMLAudioElement>}
+     * @returns {Promise<HTMLAudioElement|WebAudioLocalAudio>}
      */
     async createAudio(url, sourceType) {
+        if (url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) {
+            /** @type {{success: boolean, data?: string, contentType?: string, error?: string}|undefined} */
+            const response = await chrome.runtime.sendMessage({
+                type: 'FETCH_LOCAL_AUDIO_DATA',
+                url: url,
+            });
+
+            if (!response || !response.success || !response.data) {
+                throw new Error(response?.error || 'Failed to fetch local audio from background context');
+            }
+
+            const audio = new WebAudioLocalAudio(response.data, response.contentType || 'audio/mpeg');
+            await this._waitForData(audio);
+            return audio;
+        }
+
         const audio = new Audio(url);
         await this._waitForData(audio);
         if (!this._isAudioValid(audio, sourceType)) {
@@ -105,7 +122,7 @@ export class AudioSystem extends EventDispatcher {
     }
 
     /**
-     * @param {HTMLAudioElement} audio
+     * @param {HTMLAudioElement|WebAudioLocalAudio} audio
      * @returns {Promise<void>}
      */
     _waitForData(audio) {
