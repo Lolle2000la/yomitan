@@ -17,6 +17,7 @@
  */
 
 import {log} from '../core/log.js';
+import {toError} from '../core/to-error.js';
 import {WebExtension} from '../extension/web-extension.js';
 import {Backend} from './backend.js';
 
@@ -47,10 +48,14 @@ async function fetchLocalAudioData(url) {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'FETCH_LOCAL_AUDIO_DATA') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        fetchLocalAudioData(message.url)
+        const url = /** @type {unknown} */ (message.url);
+        if (typeof url !== 'string') {
+            sendResponse({success: false, error: 'Invalid or missing URL parameter'});
+            return false;
+        }
+        fetchLocalAudioData(url)
             .then((result) => sendResponse({success: true, data: result.data, contentType: result.contentType}))
-            .catch((error) => sendResponse({success: false, error: /** @type {Error} */ (error).message}));
+            .catch((error) => sendResponse({success: false, error: toError(error).message}));
         return true;
     }
 });

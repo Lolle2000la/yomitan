@@ -15,6 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {toError} from '../core/to-error.js';
+
+/** @type {?AudioContext} */
+let sharedAudioContext = null;
+
+/**
+ * @returns {AudioContext}
+ */
+function getSharedAudioContext() {
+    if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+        sharedAudioContext = new AudioContext();
+    }
+    return sharedAudioContext;
+}
+
 export class WebAudioLocalAudio {
     /**
      * @param {string} base64Data
@@ -69,7 +84,7 @@ export class WebAudioLocalAudio {
     addEventListener(event, callback) {
         if (event === 'loadeddata') {
             try {
-                this._audioContext = new AudioContext();
+                this._audioContext = getSharedAudioContext();
 
                 const byteCharacters = atob(this._base64Data);
                 const byteNumbers = new Array(byteCharacters.length);
@@ -85,12 +100,12 @@ export class WebAudioLocalAudio {
                         callback();
                     },
                     (err) => {
-                        this._error = err instanceof Error ? err : new Error('Failed to decode local audio data');
+                        this._error = toError(err);
                         if (this._errorCallback) { this._errorCallback(); }
                     },
                 );
             } catch (e) {
-                this._error = e instanceof Error ? e : new Error('Failed to initialize audio context');
+                this._error = toError(e);
                 if (this._errorCallback) { this._errorCallback(); }
             }
         } else if (event === 'error') {
