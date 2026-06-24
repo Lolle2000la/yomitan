@@ -669,8 +669,19 @@ export class DisplayAudio {
      */
     async _createAudioFromInfo(info, source) {
         switch (info.type) {
-            case 'url':
-                return await this._audioSystem.createAudio(info.url, source.type);
+            case 'url': {
+                let url = info.url;
+                const isLocal = /localhost|127\.0\.0\.1|::1|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\./.test(url);
+                if (isLocal) {
+                    try {
+                        const response = await this._display.application.api.getAudioDataUrl(url);
+                        url = response.dataUrl;
+                    } catch (e) {
+                        // Fall back to direct DOM parsing context resolution if background proxy crashes
+                    }
+                }
+                return await this._audioSystem.createAudio(url, source.type);
+            }
             case 'tts':
                 return this._audioSystem.createTextToSpeechAudio(info.text, info.voice);
             default:
